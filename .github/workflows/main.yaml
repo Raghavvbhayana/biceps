@@ -1,0 +1,45 @@
+name: Deploy Key Vault to Prod
+
+on:
+  # push:
+  #   branches:
+  #     - client/cstn
+  workflow_dispatch:
+
+env:
+  AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}  # Add this secret
+
+jobs:
+  deploy-key-vault-prod:
+    name: Deploy Key Vault to Prod
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # Set subscription context
+      - name: Set Azure Subscription
+        run: |
+          az account set --subscription "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+
+      # Deploy Key Vault to existing demo-rg (RG deployment)
+      - name: Deploy Key Vault Prod
+        uses: azure/arm-deploy@v1
+        with:
+          subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          resourceGroupName: rg-cstn-prod
+          template: environment/prod/keyvault/main.bicep
+          parameters: |
+            environment/prod/keyvault/prod.bicepparam
+            objectId=${{ secrets.UAMI_CSNE_PROD_OBJECT_ID }}
+
+      # Verify deployment
+      - name: Verify Key Vault Deployment
+        run: |
+          echo "Key Vault deployed successfully!"
+          az keyvault show --name kv-cste-prod-secrets --resource-group demo-rg
