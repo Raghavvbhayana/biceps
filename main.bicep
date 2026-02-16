@@ -76,7 +76,7 @@ param securityRules array
 // //========================
 module vnetModule 'modules/Vnet/vNet.bicep' = if (deployVnet) {
   name: 'vnetDeployment'
-  scope: resourceGroup(resourceGroupName) 
+    
   params: {
     location: location
     tags: vnetTags
@@ -124,7 +124,7 @@ param storageTags object
 // //========================
 module storageAccountModule 'modules/StorageAccount/storageAccount.bicep' = if (deployStorage && deployVnet) {
   name: 'storageAccountDeployment'
-  scope: resourceGroup(resourceGroupName)
+   
   params: {
     storageAccountName: storageAccountName
     location: location
@@ -157,7 +157,7 @@ param dfTags object
 //====================
 module datafactory 'modules/AzureDataFactory/azureDataFactory.bicep' = if (deployDataFactory) {
   name: 'datafactoryDeployment'
-  scope: resourceGroup(resourceGroupName)
+   
   params: {
     dataFactoryName: dataFactoryName
     location: location
@@ -174,8 +174,7 @@ module datafactory 'modules/AzureDataFactory/azureDataFactory.bicep' = if (deplo
 param appServicePlans array
 
 module appServicePlanModules 'modules/AppServicePlans/appServicePlan.bicep' = if (deployAppServicePlans) [for (plan, index) in appServicePlans: {
-  name: 'appServicePlanDeployment-${index}'
-  scope: resourceGroup(resourceGroupName)
+  name: 'name'
   params: {
     appServicePlanName: plan.name
     location: location
@@ -209,7 +208,7 @@ param appInsightsTags object = {}
 // ============================
 module appInsightsModule 'modules/ApplicationInsights/applicationInsights.bicep' = if (deployAppInsights) {
   name: 'appInsightsDeploy'
-  scope: resourceGroup(resourceGroupName)
+   
   params: {
     location: location
     appInsightsName: appInsightsName
@@ -235,7 +234,7 @@ param webApps array
 //===================
 module appServicesModule 'modules/AppServices/appService.bicep' = if (deployAppServices && deployAppServicePlans) [for (webApp, i) in webApps: {
   name: '${webApp.name}-deploy'
-  scope: resourceGroup(resourceGroupName)
+   
   params: {
     location: location
     webAppName: webApp.name
@@ -264,7 +263,7 @@ param identityTags object
 // //=========================
 module managedIdentityModule 'modules/ManagedIdentity/managedIdentity.bicep' = if (deployManagedIdentity) {
   name: 'managedIdentityDeployment'
-  scope: resourceGroup(resourceGroupName)
+   
   params: {
     identityName: identityName
     location: location
@@ -292,7 +291,7 @@ param keyVaultTags object = {}
 // // // ============================
 module keyVaultModule 'modules/KeyVault.bicep/keyVault.bicep' = if (deployKeyVault) {
   name: 'keyVaultDeployment'
-  scope: resourceGroup(resourceGroupName)
+   
   params: {
     location: location
     keyVaultName: keyVaultName
@@ -383,7 +382,7 @@ param sqlMIRouteTableName string
 
 module sqlManagedInstanceModule 'modules/ManagedSqlInstance/managedSqlInstance.bicep' = if (deploySqlManagedInstance && deployManagedIdentity && deployKeyVault) {
   name: 'sqlManagedInstanceDeployment'
-  scope: resourceGroup(resourceGroupName)
+   
   dependsOn: [
     keyVaultModule
   ]
@@ -438,7 +437,7 @@ param dbaEmailAddress string
 // // ====================================
 module actionGroupModule 'modules/Monitoring/actionGroup.bicep' = if (deployMonitoring && deploySqlManagedInstance && deployManagedIdentity && deployKeyVault) {
   name: 'actionGroupDeployment'
-  scope: resourceGroup(resourceGroupName)
+   
   params: {
     actionGroupName: actionGroupName
     actionGroupShortName: actionGroupShortName
@@ -473,7 +472,7 @@ module actionGroupModule 'modules/Monitoring/actionGroup.bicep' = if (deployMoni
 
 module sqlMiAlertRulesModule 'modules/Monitoring/sqlMIAlertsRules.bicep' = if (deployMonitoring && deploySqlManagedInstance && deployManagedIdentity && deployKeyVault) {
   name: 'sqlMiAlertRulesDeployment'
-  scope: resourceGroup(resourceGroupName)
+   
   dependsOn: [
     actionGroupModule
   ]
@@ -497,7 +496,7 @@ param functionApps array
 // ==========================================
 module functionAppModules 'modules/FunctionApps/functionApp.bicep' = if (deployFunctionApps && deployAppServicePlans) [for (func, index) in functionApps: {
   name: 'functionAppDeployment-${index}'
-  scope: resourceGroup(resourceGroupName)
+   
   params: {
     storageAccountName: func.storageAccountName
     functionAppName: func.name
