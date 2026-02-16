@@ -1,6 +1,8 @@
 targetScope = 'resourceGroup' 
 
+// ==========================================================
 // Flags
+// ==========================================================
 param deployVnet bool = false
 param deployStorage bool = false
 param deployDataFactory bool = false
@@ -13,11 +15,25 @@ param deploySqlManagedInstance bool = false
 param deployMonitoring bool = false
 param deployFunctionApps bool = false
 
+@description('Primary location for all resources')
 param location string = 'eastus'
-param resourceGroupName string // Now used in deployment name or tags to clear warning
+@description('The name of the Resource Group (used for naming deployments)')
+param resourceGroupName string
+@description('Global tags to be merged with resource-specific tags')
 param rgTags object
 
-// --- VNET ---
+// ==========================================================
+// PRE-CALCULATED VARIABLES (The "Red Line" Fix)
+// ==========================================================
+var resolvedMsiId = deployManagedIdentity ? managedIdentityModule.outputs.resourceId : ''
+var resolvedMsiPrincipalId = deployManagedIdentity ? managedIdentityModule.outputs.principalId : ''
+var resolvedAppInsightsConn = deployAppInsights ? appInsightsModule.outputs.appInsightsConnectionString : ''
+var resolvedSqlMiId = deploySqlManagedInstance ? sqlManagedInstanceModule.outputs.managedInstanceId : ''
+var resolvedActionGroupId = (deployMonitoring && deploySqlManagedInstance) ? actionGroupModule.outputs.actionGroupId : ''
+
+// ==========================================================
+// VNET
+// ==========================================================
 param vnetName string
 param vnetAddressPrefix string
 param subnetName string = 'default'
@@ -27,10 +43,10 @@ param nsgName string
 param securityRules array
 
 module vnetModule 'modules/Vnet/vNet.bicep' = if (deployVnet) {
-  name: 'vnetDeployment-${resourceGroupName}' // Used param to clear warning
+  name: 'vnetDeployment-${resourceGroupName}'
   params: {
     location: location
-    tags: union(rgTags, vnetTags) // Used rgTags to clear warning
+    tags: union(rgTags, vnetTags)
     vnetName: vnetName
     vnetAddressPrefix: vnetAddressPrefix
     subnetName: subnetName
@@ -40,7 +56,9 @@ module vnetModule 'modules/Vnet/vNet.bicep' = if (deployVnet) {
   }
 }
 
-// --- STORAGE ---
+// ==========================================================
+// STORAGE
+// ==========================================================
 param storageAccountName string
 param storageSkuName string = 'Standard_LRS'
 param storageKind string = 'StorageV2'
@@ -65,7 +83,9 @@ module storageAccountModule 'modules/StorageAccount/storageAccount.bicep' = if (
   }
 }
 
-// --- DATA FACTORY ---
+// ==========================================================
+// DATA FACTORY
+// ==========================================================
 param dataFactoryName string
 param dfTags object
 
@@ -78,7 +98,9 @@ module datafactory 'modules/AzureDataFactory/azureDataFactory.bicep' = if (deplo
   }
 }
 
-// --- APP SERVICE PLANS ---
+// ==========================================================
+// APP SERVICE PLANS
+// ==========================================================
 param appServicePlans array
 
 module appServicePlanModules 'modules/AppServicePlans/appServicePlan.bicep' = [for (plan, index) in appServicePlans: if (deployAppServicePlans) {
@@ -97,7 +119,9 @@ module appServicePlanModules 'modules/AppServicePlans/appServicePlan.bicep' = [f
   }
 }]
 
-// --- APP INSIGHTS ---
+// ==========================================================
+// APP INSIGHTS
+// ==========================================================
 param appInsightsName string
 param appType string = 'web'
 param appInsightsTags object = {}
@@ -112,7 +136,9 @@ module appInsightsModule 'modules/ApplicationInsights/applicationInsights.bicep'
   }
 }
 
-// --- APP SERVICES ---
+// ==========================================================
+// APP SERVICES
+// ==========================================================
 param appServiceTags object
 param webApps array
 
@@ -121,18 +147,19 @@ module appServicesModule 'modules/AppServices/appService.bicep' = [for (webApp, 
   params: {
     location: location
     webAppName: webApp.name
-    // FIXED: Wrapped in parentheses () to resolve BCP009/BCP018
-    appServicePlanName: (deployAppServicePlans ? appServicePlanModules[webApp.appServicePlanIndex].outputs.appServicePlanName : '')
-    appInsightsConnectionString: (deployAppInsights ? appInsightsModule.outputs.appInsightsConnectionString : '') 
+    // Apply the same wrapping here for array-based lookups
+    appServicePlanName: deployAppServicePlans ? appServicePlanModules[webApp.appServicePlanIndex].outputs.appServicePlanName : ''
+    appInsightsConnectionString: resolvedAppInsightsConn
+    identityResourceId: resolvedMsiId
     tags: union(rgTags, appServiceTags, webApp.tags)
     appSettings: webApp.appSettings
     siteConfig: webApp.siteConfig
     os: webApp.os
-    identityResourceId: (deployManagedIdentity ? managedIdentityModule.outputs.resourceId : '')
   }
 }]
-
-// --- MANAGED IDENTITY ---
+// ==========================================================
+// MANAGED IDENTITY
+// ==========================================================
 param identityName string
 param identityTags object
 
@@ -145,7 +172,9 @@ module managedIdentityModule 'modules/ManagedIdentity/managedIdentity.bicep' = i
   }
 }
 
-// --- KEY VAULT ---
+// ==========================================================
+// KEY VAULT
+// ==========================================================
 param keyVaultName string
 param keyVaultTags object = {}
 
@@ -155,7 +184,7 @@ module keyVaultModule 'modules/KeyVault.bicep/keyVault.bicep' = if (deployKeyVau
     location: location
     keyVaultName: keyVaultName
     tags: union(rgTags, keyVaultTags)
-    objectId: (deployManagedIdentity ? managedIdentityModule.outputs.principalId : '')
+    objectId: resolvedMsiPrincipalId
     enableSoftDelete: true
     enablePurgeProtection: true
     softDeleteRetentionInDays: 90
@@ -168,7 +197,9 @@ module keyVaultModule 'modules/KeyVault.bicep/keyVault.bicep' = if (deployKeyVau
   }
 }
 
-// --- SQL MANAGED INSTANCE ---
+// ==========================================================
+// SQL MANAGED INSTANCE
+// ==========================================================
 param managedInstanceName string
 param managedInstanceProperties object
 param sku object
@@ -203,10 +234,10 @@ module sqlManagedInstanceModule 'modules/ManagedSqlInstance/managedSqlInstance.b
     identity: {
       type: 'UserAssigned'
       userAssignedIdentities: {
-        '${deployManagedIdentity ? managedIdentityModule.outputs.resourceId : 'none'}': {}
+        '${(deployManagedIdentity ? resolvedMsiId : 'none')}': {}
       }
     }
-    primaryUserAssignedIdentityId: (deployManagedIdentity ? managedIdentityModule.outputs.resourceId : '')  
+    primaryUserAssignedIdentityId: resolvedMsiId 
     managedInstanceProperties: managedInstanceProperties
     sku: sku
     managedDatabases: managedDatabases
@@ -220,7 +251,9 @@ module sqlManagedInstanceModule 'modules/ManagedSqlInstance/managedSqlInstance.b
   }
 }
 
-// --- MONITORING ---
+// ==========================================================
+// MONITORING
+// ==========================================================
 param actionGroupName string
 param actionGroupShortName string
 param enableMonitoring bool = true
@@ -249,9 +282,9 @@ param storageAlertThreshold int = 85
 module sqlMiAlertRulesModule 'modules/Monitoring/sqlMIAlertsRules.bicep' = if (deployMonitoring && deploySqlManagedInstance) {
   name: 'sqlMiAlertRulesDeployment'
   params: {
-    sqlManagedInstanceId: (deploySqlManagedInstance ? sqlManagedInstanceModule.outputs.managedInstanceId : '')
+    sqlManagedInstanceId: resolvedSqlMiId
     managedInstanceName: managedInstanceName
-    actionGroupId: (deployMonitoring && deploySqlManagedInstance ? actionGroupModule.outputs.actionGroupId : '')
+    actionGroupId: resolvedActionGroupId
     enableAlertRules: enableMonitoring
     alertTags: union(rgTags, sqlmiTags)
     cpuThreshold: cpuAlertThreshold
@@ -259,7 +292,9 @@ module sqlMiAlertRulesModule 'modules/Monitoring/sqlMIAlertsRules.bicep' = if (d
   }
 }
 
-// --- FUNCTION APPS ---
+// ==========================================================
+// FUNCTION APPS
+// ==========================================================
 param functionApps array
 
 module functionAppModules 'modules/FunctionApps/functionApp.bicep' = [for (func, index) in functionApps: if (deployFunctionApps && deployAppServicePlans) {
@@ -271,7 +306,7 @@ module functionAppModules 'modules/FunctionApps/functionApp.bicep' = [for (func,
     appInsightsName: appInsightsName
     runtime: func.runtime
     osType: func.osType
-    appServicePlanId: (deployAppServicePlans ? appServicePlanModules[index].outputs.appServicePlanId : '')
+    appServicePlanId: deployAppServicePlans ? appServicePlanModules[index].outputs.appServicePlanId : ''
     tags: union(rgTags, func.tags)
   }
 }]
