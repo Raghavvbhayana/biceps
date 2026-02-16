@@ -174,7 +174,7 @@ module datafactory 'modules/AzureDataFactory/azureDataFactory.bicep' = if (deplo
 param appServicePlans array
 
 module appServicePlanModules 'modules/AppServicePlans/appServicePlan.bicep' = if (deployAppServicePlans) [for (plan, index) in appServicePlans: {
-  name: 'name'
+  name: 'appServicePlanDeployment-${index}'
   params: {
     appServicePlanName: plan.name
     location: location
@@ -183,9 +183,9 @@ module appServicePlanModules 'modules/AppServicePlans/appServicePlan.bicep' = if
     capacity: plan.capacity
     tags: plan.tags
     isLinux: plan.isLinux
-    zoneRedundant: plan.?zoneRedundant ?? false
-    perSiteScaling: plan.?perSiteScaling ?? false
-    maximumElasticWorkerCount: plan.?maximumElasticWorkerCount ?? 1
+    zoneRedundant: contains(plan, 'zoneRedundant') ? plan.zoneRedundant : false
+    perSiteScaling: contains(plan, 'perSiteScaling') ? plan.perSiteScaling : false
+    maximumElasticWorkerCount: contains(plan, 'maximumElasticWorkerCount') ? plan.maximumElasticWorkerCount : 1
   }
   // dependsOn: [
   //   rgModule
@@ -307,7 +307,7 @@ module keyVaultModule 'modules/KeyVault.bicep/keyVault.bicep' = if (deployKeyVau
       bypass: 'AzureServices'
     }
   }
-dependsOn: deployManagedIdentity ? [managedIdentityModule] : []
+// dependsOn: deployManagedIdentity ? [managedIdentityModule] : []
 }
 // // //====================================
 // // // Parameters for SQL Managed Instance
