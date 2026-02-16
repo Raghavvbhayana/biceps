@@ -8,7 +8,7 @@ param keyVaultName string
 param tags object
 
 @description('Object ID of the user or service principal that will have access to Key Vault')
-param objectId string
+param objectId string = ''
 
 @description('Tenant ID for the Key Vault')
 param tenantId string = subscription().tenantId

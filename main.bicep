@@ -7,7 +7,7 @@ targetScope = 'subscription'
 //===============================================================
 // CONDITIONAL DEPLOYMENT FLAGS
 //===============================================================
-param deployRG bool = false
+param deployRG bool 
 param deployVnet bool = false
 param deployStorage bool = false
 param deployDataFactory bool = false
@@ -35,7 +35,7 @@ param rgTags object
 //========================
 // Resource Group Module
 //=========================
-module rgModule 'modules/ResourceGroup/resourceGroup.bicep' = {
+module rgModule 'modules/ResourceGroup/resourceGroup.bicep' = if (deployRG) {
   name: 'rgDeployment'
   params: {
     resourceGroupName: resourceGroupName
@@ -72,7 +72,7 @@ param securityRules array
 // //========================
 // // Virtual Network Module
 // //========================
-module vnetModule 'modules/Vnet/vNet.bicep' = {
+module vnetModule 'modules/Vnet/vNet.bicep' = if (deployVnet) {
   name: 'vnetDeployment'
   scope: resourceGroup(resourceGroupName) 
   params: {
@@ -120,7 +120,7 @@ param storageTags object
 // //========================
 // // Storage Account Module
 // //========================
-module storageAccountModule 'modules/StorageAccount/storageAccount.bicep' = {
+module storageAccountModule 'modules/StorageAccount/storageAccount.bicep' = if (deployStorage && deployVnet) {
   name: 'storageAccountDeployment'
   scope: resourceGroup(resourceGroupName)
   params: {
@@ -131,7 +131,7 @@ module storageAccountModule 'modules/StorageAccount/storageAccount.bicep' = {
     storageKind: storageKind
     accessTier: accessTier
     minimumTlsVersion: minimumTlsVersion
-    vnetResourceId: vnetModule.outputs.vnetId
+    vnetResourceId: deployVnet ? vnetModule.outputs.vnetId : null
     subnetName: subnetName
     ipRules: ipRules
     ContainerNames: ContainerNames
@@ -153,7 +153,7 @@ param dfTags object
 //====================
 // Data Factory Module
 //====================
-module datafactory 'modules/AzureDataFactory/azureDataFactory.bicep' = {
+module datafactory 'modules/AzureDataFactory/azureDataFactory.bicep' = if (deployDataFactory) {
   name: 'datafactoryDeployment'
   scope: resourceGroup(resourceGroupName)
   params: {
@@ -171,7 +171,7 @@ module datafactory 'modules/AzureDataFactory/azureDataFactory.bicep' = {
 @description('Array of App Service Plan configurations')
 param appServicePlans array
 
-module appServicePlanModules 'modules/AppServicePlans/appServicePlan.bicep' = [for (plan, index) in appServicePlans: {
+module appServicePlanModules 'modules/AppServicePlans/appServicePlan.bicep' = if (deployAppServicePlans) [for (plan, index) in appServicePlans: {
   name: 'appServicePlanDeployment-${index}'
   scope: resourceGroup(resourceGroupName)
   params: {
@@ -205,7 +205,7 @@ param appInsightsTags object = {}
 // ============================
 // Deploy App Insights Module
 // ============================
-module appInsightsModule 'modules/ApplicationInsights/applicationInsights.bicep' = {
+module appInsightsModule 'modules/ApplicationInsights/applicationInsights.bicep' = if (deployAppInsights) {
   name: 'appInsightsDeploy'
   scope: resourceGroup(resourceGroupName)
   params: {
@@ -231,23 +231,23 @@ param webApps array
 // ==================
 // App Service Deploy
 //===================
-module appServicesModule 'modules/AppServices/appService.bicep' = [for (webApp, i) in webApps: {
+module appServicesModule 'modules/AppServices/appService.bicep' = if (deployAppServices && deployAppServicePlans) [for (webApp, i) in webApps: {
   name: '${webApp.name}-deploy'
   scope: resourceGroup(resourceGroupName)
   params: {
     location: location
     webAppName: webApp.name
     appServicePlanName: appServicePlanModules[webApp.appServicePlanIndex].outputs.appServicePlanName
-    appInsightsConnectionString: appInsightsModule.outputs.appInsightsConnectionString
+    appInsightsConnectionString: deployAppInsights ? appInsightsModule.outputs.appInsightsConnectionString : null 
     tags: union(appServiceTags, webApp.tags)
     appSettings: webApp.appSettings
     siteConfig: webApp.siteConfig
     os: webApp.os
-    identityResourceId: managedIdentityModule.outputs.resourceId
+    identityResourceId: deployManagedIdentity ? managedIdentityModule.outputs.resourceId : null
   }
-  dependsOn: [
-    appServicePlanModules  
-  ]
+  // dependsOn: [
+  //   appServicePlanModules  
+ // ]
 }]
 
 // //===========================================
@@ -263,7 +263,7 @@ param identityTags object
 // //=========================
 // // Managed Identity Module
 // //=========================
-module managedIdentityModule 'modules/ManagedIdentity/managedIdentity.bicep' = {
+module managedIdentityModule 'modules/ManagedIdentity/managedIdentity.bicep' = if (deployManagedIdentity) {
   name: 'managedIdentityDeployment'
   scope: resourceGroup(resourceGroupName)
   params: {
@@ -291,14 +291,14 @@ param keyVaultTags object = {}
 // // // ============================
 // // // Deploy Key Vault Module
 // // // ============================
-module keyVaultModule 'modules/KeyVault.bicep/keyVault.bicep' = {
+module keyVaultModule 'modules/KeyVault.bicep/keyVault.bicep' = if (deployKeyVault) {
   name: 'keyVaultDeployment'
   scope: resourceGroup(resourceGroupName)
   params: {
     location: location
     keyVaultName: keyVaultName
     tags: keyVaultTags
-    objectId: managedIdentityModule.outputs.principalId
+    objectId: deployManagedIdentity ? managedIdentityModule.outputs.principalId : null
     enableSoftDelete: true
     enablePurgeProtection: true
     softDeleteRetentionInDays: 90
@@ -384,7 +384,7 @@ param sqlMIRouteTableName string
 // // Deploy SQL Managed Instance Module
 // // ====================================
 
-module sqlManagedInstanceModule 'modules/ManagedSqlInstance/managedSqlInstance.bicep' = {
+module sqlManagedInstanceModule 'modules/ManagedSqlInstance/managedSqlInstance.bicep' = if (deploySqlManagedInstance && deployManagedIdentity && deployKeyVault) {
   name: 'sqlManagedInstanceDeployment'
   scope: resourceGroup(resourceGroupName)
   dependsOn: [
@@ -439,7 +439,7 @@ param dbaEmailAddress string
 // // ====================================
 // // Deploy Action Group Module
 // // ====================================
-module actionGroupModule 'modules/Monitoring/actionGroup.bicep' = if (enableMonitoring) {
+module actionGroupModule 'modules/Monitoring/actionGroup.bicep' = if (deployMonitoring && deploySqlManagedInstance && deployManagedIdentity && deployKeyVault) {
   name: 'actionGroupDeployment'
   scope: resourceGroup(resourceGroupName)
   params: {
@@ -474,7 +474,7 @@ module actionGroupModule 'modules/Monitoring/actionGroup.bicep' = if (enableMoni
 // // Deploy SQL MI Alert Rules Module
 // // ====================================
 
-module sqlMiAlertRulesModule 'modules/Monitoring/sqlMIAlertsRules.bicep' = if (enableMonitoring) {
+module sqlMiAlertRulesModule 'modules/Monitoring/sqlMIAlertsRules.bicep' = if (deployMonitoring && deploySqlManagedInstance && deployManagedIdentity && deployKeyVault) {
   name: 'sqlMiAlertRulesDeployment'
   scope: resourceGroup(resourceGroupName)
   dependsOn: [
@@ -498,7 +498,7 @@ param functionApps array
 // ==========================================
 // Modules: Function Apps
 // ==========================================
-module functionAppModules 'modules/FunctionApps/functionApp.bicep' = [for (func, index) in functionApps: {
+module functionAppModules 'modules/FunctionApps/functionApp.bicep' = if (deployFunctionApps && deployAppServicePlans) [for (func, index) in functionApps: {
   name: 'functionAppDeployment-${index}'
   scope: resourceGroup(resourceGroupName)
   params: {

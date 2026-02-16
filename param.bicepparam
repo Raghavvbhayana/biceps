@@ -17,8 +17,7 @@ param deploySqlManagedInstance bool = false
 param deployMonitoring bool = false
 param deployFunctionApps bool = false
 
-// param resourceGroupName = 'RnD-RaghvRG'
-// param location = 'eastus' 
+
 /*
 =============================================================================
    Resource Group Configuration
@@ -28,8 +27,8 @@ param deployFunctionApps bool = false
 - rgTags:              Apply mandatory tags for cost tracking & compliance.
 ==============================================================================
 */
-param resourceGroupName = ''    // Resource group name
-param location = ''                  // Azure region for deployment
+param resourceGroupName = 'RnD-RaghavRG'    // Resource group name
+param location = 'eastus'                  // Azure region for deployment
 param rgTags = {
   Environment: ''        // Must always match deployment environment
   CreatedBY: ''     // Responsible team
