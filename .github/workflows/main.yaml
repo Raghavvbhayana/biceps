@@ -34,18 +34,5 @@ jobs:
           subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           resourceGroupName: RnD-RaghavRG
           template: main.bicep
-          parameters: |
-            prod.bicepparam
-            deployRG=false
-            deployManagedIdentity=false
-            deployKeyVault=true
-            resourceGroupName='RnD-RaghavRG'
-            location='centralus'
-            identityName='mi-keyvault-prod'
-            # objectId=${{ secrets.UAMI_CSNE_PROD_OBJECT_ID }}
+          parameters: param.bicepparam 
 
-      # Verify deployment
-      - name: Verify Key Vault Deployment
-        run: |
-          echo "Key Vault deployed successfully!"
-          az keyvault show --name kv-cste-prod-secrets --resource-group RnD-RaghavRG
