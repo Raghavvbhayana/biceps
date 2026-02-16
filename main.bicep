@@ -2,7 +2,7 @@
 //  Deployment -  Bicep Template
 //**************************************************************
 
-targetScope = 'subscription'
+targetScope = 'resourceGroup'
 
 //===============================================================
 // CONDITIONAL DEPLOYMENT FLAGS
