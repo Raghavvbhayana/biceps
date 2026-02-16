@@ -1,9 +1,9 @@
 name: Deploy Key Vault to Prod
 
 on:
-  # push:
-  #   branches:
-  #     - client/cstn
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 env:
