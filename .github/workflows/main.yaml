@@ -37,11 +37,10 @@ jobs:
           parameters: |
             prod.bicepparam
             deployRG=false
-            deployManagedIdentity=true
+            deployManagedIdentity=false
             deployKeyVault=true
             resourceGroupName='RnD-RaghavRG'
             location='centralus'
-            keyVaultName='kv-cste-prod-secrets'
             identityName='mi-keyvault-prod'
             # objectId=${{ secrets.UAMI_CSNE_PROD_OBJECT_ID }}
 

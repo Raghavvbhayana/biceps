@@ -1,7 +1,7 @@
 //**************************************************************
 //  Deployment - Bicep Template (Production Environment)
 //**************************************************************
-targetScope = 'subscription'
+targetScope = 'resourceGroup'
 
 //===============================================================
 // CONDITIONAL DEPLOYMENT FLAGS
@@ -10,7 +10,7 @@ param deployRG bool = false
 param deployVnet bool = false
 param deployStorage bool = false
 param deployDataFactory bool = false
-param deployManagedIdentity bool = true
+param deployManagedIdentity bool = false
 param deployAppServicePlans bool = false
 param deployAppInsights bool = false
 param deployAppServices bool = false
