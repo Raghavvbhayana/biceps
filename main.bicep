@@ -1,7 +1,8 @@
 //**************************************************************
-//  Deployment - Bicep Template (Production Environment)
+//  Deployment -  Bicep Template
 //**************************************************************
-targetScope = 'resourceGroup'
+
+targetScope = 'subscription'
 
 //===============================================================
 // CONDITIONAL DEPLOYMENT FLAGS
@@ -10,7 +11,7 @@ param deployRG bool = false
 param deployVnet bool = false
 param deployStorage bool = false
 param deployDataFactory bool = false
-param deployManagedIdentity bool = false
+param deployManagedIdentity bool = true
 param deployAppServicePlans bool = false
 param deployAppInsights bool = false
 param deployAppServices bool = false
@@ -19,13 +20,22 @@ param deploySqlManagedInstance bool = false
 param deployMonitoring bool = false
 param deployFunctionApps bool = false
 
-// COMMON PARAMETERS
+//====================
+// Resource Group Parameters
+//====================
+@description('Name of the resource group to create or use')
 param resourceGroupName string
-param location string
+
+@description('Location for all resources')
+param location string = 'eastus'
+
+@description('Tags for Resource Group')
 param rgTags object
 
-// 1. RESOURCE GROUP
-module rgModule './modules/ResourceGroup/resourceGroup.bicep' = if (deployRG) {
+//========================
+// Resource Group Module
+//=========================
+module rgModule 'modules/ResourceGroup/resourceGroup.bicep' = {
   name: 'rgDeployment'
   params: {
     resourceGroupName: resourceGroupName
@@ -34,18 +44,37 @@ module rgModule './modules/ResourceGroup/resourceGroup.bicep' = if (deployRG) {
   }
 }
 
-// 2. VIRTUAL NETWORK
+// //===========================
+// // Virtual Network Parameters
+// //===========================
+@description('Name of the virtual network')
 param vnetName string
-param vnetAddressPrefix string
-param subnetName string = 'default'
-param subnetAddressPrefix string
-param vnetTags object
-param nsgName string
-param securityRules array
 
-module vnetModule './modules/Vnet/vNet.bicep' = if (deployVnet) {
+@description('Address prefix for the virtual network')
+param vnetAddressPrefix string
+
+@description('Subnet name inside the virtual network')
+param subnetName string = 'default'
+
+@description('Address prefix for the subnet')
+param subnetAddressPrefix string
+
+@description('Tags for Virtual Network')
+param vnetTags object
+
+@description('NSG name following naming conventions')
+param nsgName string      
+
+@description('NSG security rules array')
+param securityRules array                                        
+
+
+// //========================
+// // Virtual Network Module
+// //========================
+module vnetModule 'modules/Vnet/vNet.bicep' = {
   name: 'vnetDeployment'
-  scope: resourceGroup(resourceGroupName)
+  scope: resourceGroup(resourceGroupName) 
   params: {
     location: location
     tags: vnetTags
@@ -56,58 +85,75 @@ module vnetModule './modules/Vnet/vNet.bicep' = if (deployVnet) {
     nsgName: nsgName
     securityRules: securityRules
   }
-  dependsOn: [rgModule]
+  dependsOn: [
+    rgModule
+  ]
 }
 
-// 3. STORAGE ACCOUNT  
-param storageAccountName string            
+// //===============================
+// // Storage Account Parameters
+// //===============================
+@description('Name of the storage account')
+param storageAccountName string
+
+@description('SKU for the storage account')
 param storageSkuName string = 'Standard_LRS'
+
+@description('Kind of storage account')
 param storageKind string = 'StorageV2'
+
+@description('Access tier for the storage account')
 param accessTier string = 'Hot'
+
+@description('Minimum TLS version')
 param minimumTlsVersion string = 'TLS1_2'
+
+@description('IP Rules for the storage account firewall')
 param ipRules array
+
+@description('Container names for inbound and outbound data')
 param ContainerNames array
+
+@description('Tags for Storage Account')
 param storageTags object
 
-module storageAccountModule './modules/StorageAccount/storageAccount.bicep' = if (deployStorage) {
+// //========================
+// // Storage Account Module
+// //========================
+module storageAccountModule 'modules/StorageAccount/storageAccount.bicep' = {
   name: 'storageAccountDeployment'
   scope: resourceGroup(resourceGroupName)
   params: {
-    storageAccountName: storageAccountName      
+    storageAccountName: storageAccountName
     location: location
     tags: storageTags
     storageSkuName: storageSkuName
     storageKind: storageKind
     accessTier: accessTier
     minimumTlsVersion: minimumTlsVersion
-    vnetId: deployVnet ? vnetModule.outputs.vnetId : ''
+    vnetResourceId: vnetModule.outputs.vnetId
     subnetName: subnetName
     ipRules: ipRules
     ContainerNames: ContainerNames
   }
-  dependsOn: [rgModule]
+  dependsOn: [
+    rgModule
+  ]
 }
 
-// 4. MANAGED IDENTITY
-param identityName string
-param identityTags object
-
-module managedIdentityModule './modules/ManagedIdentity/managedIdentity.bicep' = if (deployManagedIdentity) {
-  name: 'managedIdentityDeployment'
-  scope: resourceGroup(resourceGroupName)
-  params: {
-    identityName: identityName
-    location: location
-    tags: identityTags
-  }
-  # dependsOn: [rgModule]
-}
-
-// 5. DATA FACTORY
+// //=========================
+// // Data Factory Parameters
+// //========================
+@description('Name of the Data Factory')
 param dataFactoryName string
+
+@description('Tags for Data Factory')
 param dfTags object
 
-module datafactory './modules/AzureDataFactory/azureDataFactory.bicep' = if (deployDataFactory) {
+//====================
+// Data Factory Module
+//====================
+module datafactory 'modules/AzureDataFactory/azureDataFactory.bicep' = {
   name: 'datafactoryDeployment'
   scope: resourceGroup(resourceGroupName)
   params: {
@@ -115,13 +161,17 @@ module datafactory './modules/AzureDataFactory/azureDataFactory.bicep' = if (dep
     location: location
     tags: dfTags
   }
-  dependsOn: [rgModule]
+  dependsOn: [
+    rgModule
+  ]
 }
-
-// 6. APP SERVICE PLANS
+//==========================
+// Deploy App service Plan
+//==========================
+@description('Array of App Service Plan configurations')
 param appServicePlans array
 
-module appServicePlanModules './modules/AppServicePlans/appServicePlan.bicep' = if (deployAppServicePlans) [for (plan, index) in appServicePlans: {
+module appServicePlanModules 'modules/AppServicePlans/appServicePlan.bicep' = [for (plan, index) in appServicePlans: {
   name: 'appServicePlanDeployment-${index}'
   scope: resourceGroup(resourceGroupName)
   params: {
@@ -136,15 +186,26 @@ module appServicePlanModules './modules/AppServicePlans/appServicePlan.bicep' = 
     perSiteScaling: plan.?perSiteScaling ?? false
     maximumElasticWorkerCount: plan.?maximumElasticWorkerCount ?? 1
   }
-  dependsOn: [rgModule]
+  dependsOn: [
+    rgModule
+  ]
 }]
-
-// 7. APP INSIGHTS
+// ============================
+// Parameters App Insights Module
+// ============================
+@description('Name of the Application Insights instance')
 param appInsightsName string
+
+@description('Application type for Application Insights (e.g., web, other)')
 param appType string = 'web'
+
+@description('Tags to apply to resources')
 param appInsightsTags object = {}
 
-module appInsightsModule './modules/ApplicationInsights/applicationInsights.bicep' = if (deployAppInsights) {
+// ============================
+// Deploy App Insights Module
+// ============================
+module appInsightsModule 'modules/ApplicationInsights/applicationInsights.bicep' = {
   name: 'appInsightsDeploy'
   scope: resourceGroup(resourceGroupName)
   params: {
@@ -153,21 +214,91 @@ module appInsightsModule './modules/ApplicationInsights/applicationInsights.bice
     appType: appType
     tags: appInsightsTags
   }
-  dependsOn: [rgModule]
+  dependsOn: [
+    rgModule
+  ]
 }
 
-// 8. KEY VAULT
+// //=================
+// // Parameters for App Service
+// //=================
+@description('Tags to apply to shared resources')
+param appServiceTags object
+
+@description('Array of Web App configurations')
+param webApps array
+
+// ==================
+// App Service Deploy
+//===================
+module appServicesModule 'modules/AppServices/appService.bicep' = [for (webApp, i) in webApps: {
+  name: '${webApp.name}-deploy'
+  scope: resourceGroup(resourceGroupName)
+  params: {
+    location: location
+    webAppName: webApp.name
+    appServicePlanName: appServicePlanModules[webApp.appServicePlanIndex].outputs.appServicePlanName
+    appInsightsConnectionString: appInsightsModule.outputs.appInsightsConnectionString
+    tags: union(appServiceTags, webApp.tags)
+    appSettings: webApp.appSettings
+    siteConfig: webApp.siteConfig
+    os: webApp.os
+    identityResourceId: managedIdentityModule.outputs.resourceId
+  }
+  dependsOn: [
+    appServicePlanModules  
+  ]
+}]
+
+// //===========================================
+// // User Assigned Managed Identity Parameters
+// //===========================================
+@description('Name of the User Assigned Managed Identity')
+param identityName string
+
+@description('Tags to apply to the managed identity')
+param identityTags object
+
+
+// //=========================
+// // Managed Identity Module
+// //=========================
+module managedIdentityModule 'modules/ManagedIdentity/managedIdentity.bicep' = {
+  name: 'managedIdentityDeployment'
+  scope: resourceGroup(resourceGroupName)
+  params: {
+    identityName: identityName
+    location: location
+    tags: identityTags
+  }
+  // dependsOn: [
+  //   rgModule
+  // ]
+}
+
+
+
+// // // ============================
+// // // Parameters Key Vault Module
+// // // ============================
+@description('Name of the Key Vault')
 param keyVaultName string
+
+@description('Tags for Key Vault')
 param keyVaultTags object = {}
 
-module keyVaultModule './modules/KeyVault/keyVault.bicep' = if (deployKeyVault) {
+
+// // // ============================
+// // // Deploy Key Vault Module
+// // // ============================
+module keyVaultModule 'modules/KeyVault.bicep/keyVault.bicep' = {
   name: 'keyVaultDeployment'
-  scope: resourceGroup(RnD-RaghavRG)
+  scope: resourceGroup(resourceGroupName)
   params: {
-    location: centralus
+    location: location
     keyVaultName: keyVaultName
     tags: keyVaultTags
-    objectId: deployManagedIdentity ? managedIdentityModule.outputs.principalId : subscription().tenantId
+    objectId: managedIdentityModule.outputs.principalId
     enableSoftDelete: true
     enablePurgeProtection: true
     softDeleteRetentionInDays: 90
@@ -178,54 +309,87 @@ module keyVaultModule './modules/KeyVault/keyVault.bicep' = if (deployKeyVault) 
       bypass: 'AzureServices'
     }
   }
-  // dependsOn: [managedIdentityModule]
+  dependsOn: [
+    managedIdentityModule
+  ]
 }
+// // //====================================
+// // // Parameters for SQL Managed Instance
+// // // ==================================
 
-// 9. APP SERVICES
-param appServiceTags object
-param webApps array = [{}]  
-
-module appServicesModule './modules/AppServices/appService.bicep' = if (deployAppServices) [for (webApp, i) in webApps: {
-  name: '${webApp.name}-deploy'
-  scope: resourceGroup(resourceGroupName)
-  params: {
-    location: location
-    webAppName: webApp.name ?? 'defaultapp'
-    appServicePlanName: deployAppServicePlans ? appServicePlanModules[webApp.appServicePlanIndex ?? 0].outputs.appServicePlanName : ''
-    appInsightsConnectionString: deployAppInsights ? appInsightsModule.outputs.appInsightsConnectionString : ''
-    tags: union(appServiceTags, webApp.tags ?? {})
-    appSettings: webApp.appSettings ?? {}
-    siteConfig: webApp.siteConfig ?? {}
-    os: webApp.os ?? 'Windows'
-    identityResourceId: deployManagedIdentity ? managedIdentityModule.outputs.resourceId : ''
-  }
-  dependsOn: [appServicePlanModules]
-}]
-
-// 10. SQL MANAGED INSTANCE
+@description('Name of the SQL Managed Instance')
 param managedInstanceName string
+
+@description('Properties for SQL Managed Instance')
 param managedInstanceProperties object
+
+@description('SKU configuration')
 param sku object
+
+@description('Name of the Virtual Network for SQL MI')
 param sqlmivnetName string
+
+@description('Address prefix for the Virtual Network')
 param sqlmivnetAddressPrefix string = '10.0.0.0/16'
+
+@description('Name of the subnet for SQL MI')
 param sqlmisubnetName string
+
+@description('Address prefix for the subnet')
 param sqlmisubnetAddressPrefix string = '10.0.0.0/24'
-param managedDatabases array = [{ name: 'defaultdb'; collation: 'SQL_Latin1_General_CP1_CI_AS'; tags: {} }]
+
+@description('Array of database configurations to be created')
+param managedDatabases array = [
+  {
+    name: 'defaultdb'
+    collation: 'SQL_Latin1_General_CP1_CI_AS'
+    tags: {}
+  }
+]
+
+@description('Tags for SQL Managed Instance')
 param sqlmiTags object = {}
+
+@description('Enable public endpoint for SQL Managed Instance')
 param sqlmiPublicDataEndpointEnabled bool = true
+
+@description('Enable Azure AD-only authentication (disables SQL authentication)')
 param aadOnlyAuth bool = true
-@allowed(['1.0', '1.1', '1.2']) param sqlmiMinimalTlsVersion string = '1.2'
+
+@description('Minimum TLS version for SQL Managed Instance')
+@allowed(['1.0', '1.1', '1.2'])
+param sqlmiMinimalTlsVersion string = '1.2'
+
+@description('Entra ID admin login name')
 param entraIdAdminLogin string
+
+@description('Entra ID admin object ID (User or Group)')
 param entraIdAdminSid string
-@allowed(['User', 'Group', 'Application']) param entraIdAdminPrincipalType string = 'User'
+
+@description('Entra ID admin principal type')
+@allowed(['User', 'Group', 'Application'])
+param entraIdAdminPrincipalType string = 'User'
+
+@description('Entra ID tenant ID')
 param entraIdTenantId string = tenant().tenantId
-param sqlMInsgName string
+
+@description('Name of NSG for SQL Managed Instance')
+param sqlMInsgName string 
+
+@description('Name of Route Table for SQL Managed Instance')
 param sqlMIRouteTableName string
 
-module sqlManagedInstanceModule './modules/ManagedSqlInstance/managedSqlInstance.bicep' = if (deploySqlManagedInstance) {
+
+// // ====================================
+// // Deploy SQL Managed Instance Module
+// // ====================================
+
+module sqlManagedInstanceModule 'modules/ManagedSqlInstance/managedSqlInstance.bicep' = {
   name: 'sqlManagedInstanceDeployment'
   scope: resourceGroup(resourceGroupName)
-  dependsOn: [keyVaultModule]
+  dependsOn: [
+    keyVaultModule
+  ]
   params: {
     location: location
     vnetName: sqlmivnetName
@@ -236,8 +400,13 @@ module sqlManagedInstanceModule './modules/ManagedSqlInstance/managedSqlInstance
     subnetAddressPrefix: sqlmisubnetAddressPrefix
     managedInstanceName: managedInstanceName
     tags: sqlmiTags
-    identity: deployManagedIdentity ? { type: 'UserAssigned'; userAssignedIdentities: { '${managedIdentityModule.outputs.resourceId}': {} } } : { type: 'SystemAssigned' }
-    primaryUserAssignedIdentityId: deployManagedIdentity ? managedIdentityModule.outputs.resourceId : ''
+    identity: {
+      type: 'UserAssigned'
+      userAssignedIdentities: {
+        '${managedIdentityModule.outputs.resourceId}': {}
+      }
+    }
+    primaryUserAssignedIdentityId: managedIdentityModule.outputs.resourceId
     managedInstanceProperties: managedInstanceProperties
     sku: sku
     managedDatabases: managedDatabases
@@ -250,37 +419,71 @@ module sqlManagedInstanceModule './modules/ManagedSqlInstance/managedSqlInstance
     minimalTlsVersion: sqlmiMinimalTlsVersion
   }
 }
+// // ====================================
+// // Parameters for Action Group Module
+// // ====================================
 
-// 11. MONITORING - ACTION GROUP
+@description('Name of the Action Group')
 param actionGroupName string
-param actionGroupShortName string
-param enableMonitoring bool = true
-param dbaEmailAddress string
-param cpuAlertThreshold int = 90
-param storageAlertThreshold int = 85
 
-module actionGroupModule './modules/Monitoring/actionGroup.bicep' = if (deployMonitoring && enableMonitoring) {
+@description('Action Group Short Name')
+param actionGroupShortName string
+
+@description('Enable SQL MI monitoring and alerts')
+param enableMonitoring bool = true
+
+@description('Email address for DBA notifications')
+param dbaEmailAddress string 
+
+
+// // ====================================
+// // Deploy Action Group Module
+// // ====================================
+module actionGroupModule 'modules/Monitoring/actionGroup.bicep' = if (enableMonitoring) {
   name: 'actionGroupDeployment'
   scope: resourceGroup(resourceGroupName)
   params: {
     actionGroupName: actionGroupName
     actionGroupShortName: actionGroupShortName
     tags: sqlmiTags
-    emailReceivers: [{ name: 'DBA Team'; emailAddress: dbaEmailAddress; useCommonAlertSchema: true }]
+    emailReceivers: [
+      {
+        name: 'DBA Team'
+        emailAddress: dbaEmailAddress
+        useCommonAlertSchema: true
+      }
+    ]
     enabled: true
   }
-  dependsOn: [sqlManagedInstanceModule]
+  dependsOn: [
+    sqlManagedInstanceModule
+  ]
 }
 
-// 12. MONITORING - ALERT RULES
-module sqlMiAlertRulesModule './modules/Monitoring/sqlMIAlertsRules.bicep' = if (deployMonitoring && enableMonitoring) {
+// // ====================================
+// // Parameters for SQL MI Alert Rules Module
+// // ====================================
+  @description('CPU utilization alert threshold')
+  param cpuAlertThreshold int = 90
+
+  @description('Storage utilization alert threshold')
+  param storageAlertThreshold int = 85
+
+
+// // ====================================
+// // Deploy SQL MI Alert Rules Module
+// // ====================================
+
+module sqlMiAlertRulesModule 'modules/Monitoring/sqlMIAlertsRules.bicep' = if (enableMonitoring) {
   name: 'sqlMiAlertRulesDeployment'
   scope: resourceGroup(resourceGroupName)
-  dependsOn: [actionGroupModule]
+  dependsOn: [
+    actionGroupModule
+  ]
   params: {
-    sqlManagedInstanceId: deploySqlManagedInstance ? sqlManagedInstanceModule.outputs.managedInstanceId : ''
+    sqlManagedInstanceId: sqlManagedInstanceModule.outputs.managedInstanceId
     managedInstanceName: managedInstanceName
-    actionGroupId: deployMonitoring ? actionGroupModule.outputs.actionGroupId : ''
+    actionGroupId: actionGroupModule.outputs.actionGroupId
     enableAlertRules: enableMonitoring
     alertTags: sqlmiTags
     cpuThreshold: cpuAlertThreshold
@@ -288,21 +491,27 @@ module sqlMiAlertRulesModule './modules/Monitoring/sqlMIAlertsRules.bicep' = if 
   }
 }
 
-// 13. FUNCTION APPS
-param functionApps array = [{}]
 
-module functionAppModules './modules/FunctionApps/functionApp.bicep' = if (deployFunctionApps) [for (func, index) in functionApps: {
+
+@description('Array of Function App configurations')
+param functionApps array
+// ==========================================
+// Modules: Function Apps
+// ==========================================
+module functionAppModules 'modules/FunctionApps/functionApp.bicep' = [for (func, index) in functionApps: {
   name: 'functionAppDeployment-${index}'
   scope: resourceGroup(resourceGroupName)
   params: {
-    storageAccountName: func.storageAccountName ?? storageAccountName
-    functionAppName: func.name ?? 'defaultfunc'
+    storageAccountName: func.storageAccountName
+    functionAppName: func.name
     location: location
-    appInsightsName: deployAppInsights ? appInsightsName : ''
-    runtime: func.runtime ?? 'dotnet'
-    osType: func.osType ?? 'Windows'
-    appServicePlanId: deployAppServicePlans ? appServicePlanModules[index].outputs.appServicePlanId : ''
-    tags: func.tags ?? {}
+    appInsightsName: appInsightsName
+    runtime: func.runtime
+    osType: func.osType
+    appServicePlanId: appServicePlanModules[index].outputs.appServicePlanId
+    tags: func.tags
   }
-  dependsOn: [appServicePlanModules]
+  dependsOn: [
+    appServicePlanModules
+  ]
 }]
