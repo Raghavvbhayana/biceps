@@ -40,7 +40,16 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   }
 }
 
+// ==========================================================
+// Outputs
+// ==========================================================
+
 output storageAccountId string = storageAccount.id
 output storageAccountName string = storageAccount.name
-output primaryConnectionString string = 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${listKeys(storageAccount.id, storageAccount.apiVersion).keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
+
+@description('The primary connection string for the storage account')
+@secure()
+// FIXED: Using the resource symbol .listKeys() instead of the listKeys() function
+output primaryConnectionString string = 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
+
 output primaryBlobEndpoint string = storageAccount.properties.primaryEndpoints.blob

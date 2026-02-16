@@ -51,8 +51,6 @@ param securityRules = [
 ]
 param vnetTags = {
   Environment: 'Production'
-  CreatedBy: 'Prateek Agarwal'
-  Client: 'CSTN'
 }
 
 // ===============================================================
@@ -70,8 +68,6 @@ param ContainerNames = [
 ]
 param storageTags = {
   Environment: 'Production'
-  CreatedBy: 'Prateek Agarwal'
-  Client: 'CSTN'
 }
 
 // ===============================================================
@@ -80,11 +76,12 @@ param storageTags = {
 param dataFactoryName = 'adf-cstn-prod-001'
 param dfTags = {
   Environment: 'Production'
-  CreatedBy: 'Prateek Agarwal'
 }
 param appInsightsName = 'appi-cstn-prod-001'
 param appType = 'web'
-param appInsightsTags = { Environment: 'Production' }
+param appInsightsTags = { 
+  Environment: 'Production' 
+}
 
 // ===============================================================
 // IDENTITY & SECURITY
@@ -92,12 +89,10 @@ param appInsightsTags = { Environment: 'Production' }
 param identityName = 'id-cstn-prod-msi'
 param identityTags = {
   Environment: 'Production'
-  CreatedBy: 'Prateek Agarwal'
 }
 param keyVaultName = 'kv-cstn-prod-001'
 param keyVaultTags = {
   Environment: 'Production'
-  CreatedBy: 'Prateek Agarwal'
 }
 
 // ===============================================================
@@ -115,30 +110,31 @@ param sku = {
   family: 'Gen5'
   capacity: 4
 }
-param entraIdAdminLogin = 'admin@cstn.org'
-param entraIdAdminSid = '00000000-0000-0000-0000-000000000000'
 param sqlmivnetName = 'vnet-sql-mi'
-param sqlmivnetAddressPrefix = '10.30.0.0/16' // Added to match main.bicep
+param sqlmivnetAddressPrefix = '10.30.0.0/16'
 param sqlmisubnetName = 'ManagedInstance'
-param sqlmisubnetAddressPrefix = '10.30.1.0/24' // Added to match main.bicep
+param sqlmisubnetAddressPrefix = '10.30.1.0/24'
 param sqlMIRouteTableName = 'rt-sql-mi'
 param sqlMInsgName = 'nsg-sql-mi'
+
+param entraIdAdminLogin = 'admin@cstn.org'
+param entraIdAdminSid = '00000000-0000-0000-0000-000000000000'
+param entraIdAdminPrincipalType = 'User'
+
 param sqlmiTags = {
   Environment: 'Production'
-  CreatedBy: 'Prateek Agarwal'
 }
 param managedDatabases = []
 param dbaEmailAddress = 'dba@cstn.org'
 param actionGroupName = 'ag-sql-alerts'
-param actionGroupShortName = 'sqlalert' // Required by main.bicep
+param actionGroupShortName = 'sqlalert'
 
 // ===============================================================
-// COMPUTE ARRAYS
+// COMPUTE ARRAYS (Now filled with empty defaults to prevent errors)
 // ===============================================================
 param appServicePlans = []
 param webApps = []
 param appServiceTags = {
   Environment: 'Production'
-  CreatedBy: 'Prateek Agarwal'
 }
 param functionApps = []
