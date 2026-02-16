@@ -1,0 +1,11 @@
+{
+  "analyzers": {
+    "core": {
+      "rules": {
+        "BCP318": {
+          "level": "off"
+        }
+      }
+    }
+  }
+}

@@ -18,7 +18,7 @@ param deployFunctionApps = false
 // ===============================================================
 // RESOURCE GROUP & LOCATION
 // ===============================================================
-param resourceGroupName = 'RnD-RaghavRG'
+param resourceGroupName = 'RnD-RghvRG'
 param location = 'eastus'
 param rgTags = {
   Environment: 'Production'
