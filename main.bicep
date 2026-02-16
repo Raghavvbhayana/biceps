@@ -2,7 +2,7 @@
 //  Deployment -  Bicep Template
 //**************************************************************
 
-targetScope = 'resourceGroup'
+// targetScope = 'resourceGroup'
 
 //===============================================================
 // CONDITIONAL DEPLOYMENT FLAGS
@@ -20,29 +20,31 @@ param deploySqlManagedInstance bool = false
 param deployMonitoring bool = false
 param deployFunctionApps bool = false
 
-//====================
-// Resource Group Parameters
-//====================
-@description('Name of the resource group to create or use')
-param resourceGroupName string
+param resourceGroupName string = 'RnD-RaghavRG'    // Resource group name
+param location string = 'eastus'                  // Azure region for deployment
+// //====================
+// // Resource Group Parameters
+// //====================
+// @description('Name of the resource group to create or use')
+// param resourceGroupName string
 
-@description('Location for all resources')
-param location string = 'eastus'
+// @description('Location for all resources')
+// param location string = 'eastus'
 
-@description('Tags for Resource Group')
-param rgTags object
+// @description('Tags for Resource Group')
+// param rgTags object
 
-//========================
-// Resource Group Module
-//=========================
-module rgModule 'modules/ResourceGroup/resourceGroup.bicep' = if (deployRG) {
-  name: 'rgDeployment'
-  params: {
-    resourceGroupName: resourceGroupName
-    location: location
-    tags: rgTags
-  }
-}
+// //========================
+// // Resource Group Module
+// //=========================
+// module rgModule 'modules/ResourceGroup/resourceGroup.bicep' = if (deployRG) {
+//   name: 'rgDeployment'
+//   params: {
+//     resourceGroupName: resourceGroupName
+//     location: location
+//     tags: rgTags
+//   }
+// }
 
 // //===========================
 // // Virtual Network Parameters
@@ -85,9 +87,9 @@ module vnetModule 'modules/Vnet/vNet.bicep' = if (deployVnet) {
     nsgName: nsgName
     securityRules: securityRules
   }
-  dependsOn: [
-    rgModule
-  ]
+  // dependsOn: [
+  //   rgModule
+  // ]
 }
 
 // //===============================
@@ -136,9 +138,9 @@ module storageAccountModule 'modules/StorageAccount/storageAccount.bicep' = if (
     ipRules: ipRules
     ContainerNames: ContainerNames
   }
-  dependsOn: [
-    rgModule
-  ]
+  // dependsOn: [
+  //   rgModule
+  // ]
 }
 
 // //=========================
@@ -161,9 +163,9 @@ module datafactory 'modules/AzureDataFactory/azureDataFactory.bicep' = if (deplo
     location: location
     tags: dfTags
   }
-  dependsOn: [
-    rgModule
-  ]
+  // dependsOn: [
+  //   rgModule
+  // ]
 }
 //==========================
 // Deploy App service Plan
@@ -214,9 +216,9 @@ module appInsightsModule 'modules/ApplicationInsights/applicationInsights.bicep'
     appType: appType
     tags: appInsightsTags
   }
-  dependsOn: [
-    rgModule
-  ]
+  // dependsOn: [
+  //   rgModule
+  // ]
 }
 
 // //=================
