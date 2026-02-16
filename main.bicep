@@ -11,7 +11,7 @@ param deployRG bool
 param deployVnet bool = false
 param deployStorage bool = false
 param deployDataFactory bool = false
-param deployManagedIdentity bool = true
+param deployManagedIdentity bool = false 
 param deployAppServicePlans bool = false
 param deployAppInsights bool = false
 param deployAppServices bool = false
@@ -131,8 +131,8 @@ module storageAccountModule 'modules/StorageAccount/storageAccount.bicep' = if (
     storageKind: storageKind
     accessTier: accessTier
     minimumTlsVersion: minimumTlsVersion
-    vnetResourceId: deployVnet ? vnetModule.outputs.vnetId : null
-    subnetName: subnetName
+    // vnetResourceId: deployVnet ? vnetModule.outputs.vnetId : null
+    // subnetName: subnetName
     ipRules: ipRules
     ContainerNames: ContainerNames
   }
@@ -186,9 +186,9 @@ module appServicePlanModules 'modules/AppServicePlans/appServicePlan.bicep' = if
     perSiteScaling: plan.?perSiteScaling ?? false
     maximumElasticWorkerCount: plan.?maximumElasticWorkerCount ?? 1
   }
-  dependsOn: [
-    rgModule
-  ]
+  // dependsOn: [
+  //   rgModule
+  // ]
 }]
 // ============================
 // Parameters App Insights Module
@@ -245,9 +245,6 @@ module appServicesModule 'modules/AppServices/appService.bicep' = if (deployAppS
     os: webApp.os
     identityResourceId: deployManagedIdentity ? managedIdentityModule.outputs.resourceId : null
   }
-  // dependsOn: [
-  //   appServicePlanModules  
- // ]
 }]
 
 // //===========================================
@@ -309,9 +306,7 @@ module keyVaultModule 'modules/KeyVault.bicep/keyVault.bicep' = if (deployKeyVau
       bypass: 'AzureServices'
     }
   }
-  dependsOn: [
-    managedIdentityModule
-  ]
+dependsOn: deployManagedIdentity ? [managedIdentityModule] : []
 }
 // // //====================================
 // // // Parameters for SQL Managed Instance
