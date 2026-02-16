@@ -33,10 +33,10 @@ jobs:
         with:
           subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           resourceGroupName: RnD-RaghavRG
-          template: environment/prod/keyvault/main.bicep
+          template: ../../main.bicep
           parameters: |
-            environment/prod/keyvault/prod.bicepparam
-            objectId=${{ secrets.UAMI_CSNE_PROD_OBJECT_ID }}
+            ../../prod.bicepparam
+            # objectId=${{ secrets.UAMI_CSNE_PROD_OBJECT_ID }}
 
       # Verify deployment
       - name: Verify Key Vault Deployment
