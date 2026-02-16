@@ -16,6 +16,9 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Install latest Bicep
+        run: az bicep upgrade
       
       - name: Azure Login
         uses: azure/login@v2
