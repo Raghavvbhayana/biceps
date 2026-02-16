@@ -14,6 +14,8 @@ param deployMonitoring bool = false
 param deployFunctionApps bool = false
 
 param location string = 'eastus'
+param resourceGroupName string
+param rgTags object
 
 // --- VNET ---
 param vnetName string
@@ -119,13 +121,14 @@ module appServicesModule 'modules/AppServices/appService.bicep' = [for (webApp, 
   params: {
     location: location
     webAppName: webApp.name
-    appServicePlanName: appServicePlanModules[webApp.appServicePlanIndex].outputs.appServicePlanName
-    appInsightsConnectionString: deployAppInsights ? appInsightsModule.outputs.appInsightsConnectionString : '' 
+    // FIXED: Safe access for array and outputs
+    appServicePlanName: (deployAppServicePlans ? appServicePlanModules[webApp.appServicePlanIndex]?.outputs?.appServicePlanName : '')
+    appInsightsConnectionString: (deployAppInsights ? appInsightsModule?.outputs?.appInsightsConnectionString : '') 
     tags: union(appServiceTags, webApp.tags)
     appSettings: webApp.appSettings
     siteConfig: webApp.siteConfig
     os: webApp.os
-    identityResourceId: deployManagedIdentity ? managedIdentityModule.outputs.resourceId : ''
+    identityResourceId: (deployManagedIdentity ? managedIdentityModule?.outputs?.resourceId : '')
   }
 }]
 
@@ -152,7 +155,7 @@ module keyVaultModule 'modules/KeyVault.bicep/keyVault.bicep' = if (deployKeyVau
     location: location
     keyVaultName: keyVaultName
     tags: keyVaultTags
-    objectId: deployManagedIdentity ? managedIdentityModule.outputs.principalId : ''
+    objectId: (deployManagedIdentity ? managedIdentityModule?.outputs?.principalId : '')
     enableSoftDelete: true
     enablePurgeProtection: true
     softDeleteRetentionInDays: 90
@@ -200,10 +203,12 @@ module sqlManagedInstanceModule 'modules/ManagedSqlInstance/managedSqlInstance.b
     identity: {
       type: 'UserAssigned'
       userAssignedIdentities: {
+        // Safe access cannot be used inside string interpolation keys, 
+        // but this module only deploys if deployManagedIdentity is true anyway.
         '${deployManagedIdentity ? managedIdentityModule.outputs.resourceId : 'none'}': {}
       }
     }
-    primaryUserAssignedIdentityId: deployManagedIdentity ? managedIdentityModule.outputs.resourceId : ''
+    primaryUserAssignedIdentityId: (deployManagedIdentity ? managedIdentityModule?.outputs?.resourceId : '')  
     managedInstanceProperties: managedInstanceProperties
     sku: sku
     managedDatabases: managedDatabases
@@ -246,9 +251,9 @@ param storageAlertThreshold int = 85
 module sqlMiAlertRulesModule 'modules/Monitoring/sqlMIAlertsRules.bicep' = if (deployMonitoring && deploySqlManagedInstance) {
   name: 'sqlMiAlertRulesDeployment'
   params: {
-    sqlManagedInstanceId: deploySqlManagedInstance ? sqlManagedInstanceModule.outputs.managedInstanceId : ''
+    sqlManagedInstanceId: (deploySqlManagedInstance ? sqlManagedInstanceModule?.outputs?.managedInstanceId : '')
     managedInstanceName: managedInstanceName
-    actionGroupId: (deployMonitoring && deploySqlManagedInstance) ? actionGroupModule.outputs.actionGroupId : ''
+    actionGroupId: (deployMonitoring && deploySqlManagedInstance ? actionGroupModule?.outputs?.actionGroupId : '')
     enableAlertRules: enableMonitoring
     alertTags: sqlmiTags
     cpuThreshold: cpuAlertThreshold
@@ -268,7 +273,7 @@ module functionAppModules 'modules/FunctionApps/functionApp.bicep' = [for (func,
     appInsightsName: appInsightsName
     runtime: func.runtime
     osType: func.osType
-    appServicePlanId: appServicePlanModules[index].outputs.appServicePlanId
+    appServicePlanId: (deployAppServicePlans ? appServicePlanModules[index]?.outputs?.appServicePlanId : '')
     tags: func.tags
   }
 }]

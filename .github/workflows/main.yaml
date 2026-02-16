@@ -1,4 +1,4 @@
-name: Deploy Key Vault to Prod
+name: Deploy Infrastructure to Prod
 
 on:
   push:
@@ -7,17 +7,17 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}  # Add this secret
+  AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  RESOURCE_GROUP: RnD-RaghvRG # Fixed spelling to match your .bicepparam
 
 jobs:
-  deploy-key-vault-prod:
-    name: Deploy Key Vault to Prod
+  deploy-prod:
+    name: Deploy Resources to Prod
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      
       - name: Azure Login
         uses: azure/login@v2
         with:
@@ -26,17 +26,19 @@ jobs:
       - name: Install latest Bicep
         run: az bicep upgrade
 
-      # Set subscription context
-      - name: Set Azure Subscription
+      # Pre-deployment validation (Optional but safer)
+      - name: Run What-If
         run: |
-          az account set --subscription "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+          az deployment group what-if \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --template-file main.bicep \
+            --parameters param.bicepparam
 
-      # Deploy Key Vault to existing demo-rg (RG deployment)
-      - name: Deploy Key Vault Prod
-        uses: azure/arm-deploy@v1
+      - name: Deploy Resources
+        uses: azure/arm-deploy@v2 # Upgraded to v2 for better Bicep support
         with:
           subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          resourceGroupName: RnD-RaghavRG
-          template: main.bicep
-          parameters: param.bicepparam 
-
+          resourceGroupName: ${{ env.RESOURCE_GROUP }}
+          template: ./main.bicep
+          parameters: ./param.bicepparam 
+          failOnStdErr: false
