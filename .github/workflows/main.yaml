@@ -32,7 +32,7 @@ jobs:
         uses: azure/arm-deploy@v1
         with:
           subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          resourceGroupName: rg-cstn-prod
+          resourceGroupName: RnD-RaghavRG
           template: environment/prod/keyvault/main.bicep
           parameters: |
             environment/prod/keyvault/prod.bicepparam
@@ -42,4 +42,4 @@ jobs:
       - name: Verify Key Vault Deployment
         run: |
           echo "Key Vault deployed successfully!"
-          az keyvault show --name kv-cste-prod-secrets --resource-group demo-rg
+          az keyvault show --name kv-cste-prod-secrets --resource-group RnD-RaghavRG

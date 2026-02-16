@@ -10,11 +10,11 @@ param deployRG bool = false
 param deployVnet bool = false
 param deployStorage bool = false
 param deployDataFactory bool = false
-param deployManagedIdentity bool = false
+param deployManagedIdentity bool = true
 param deployAppServicePlans bool = false
 param deployAppInsights bool = false
 param deployAppServices bool = false
-param deployKeyVault bool = false
+param deployKeyVault bool = true
 param deploySqlManagedInstance bool = false
 param deployMonitoring bool = false
 param deployFunctionApps bool = false
@@ -100,7 +100,7 @@ module managedIdentityModule './modules/ManagedIdentity/managedIdentity.bicep' =
     location: location
     tags: identityTags
   }
-  dependsOn: [rgModule]
+  # dependsOn: [rgModule]
 }
 
 // 5. DATA FACTORY
@@ -162,7 +162,7 @@ param keyVaultTags object = {}
 
 module keyVaultModule './modules/KeyVault/keyVault.bicep' = if (deployKeyVault) {
   name: 'keyVaultDeployment'
-  scope: resourceGroup(resourceGroupName)
+  scope: resourceGroup(RnD-RaghavRG)
   params: {
     location: centralus
     keyVaultName: keyVaultName

@@ -7,7 +7,7 @@ param deployRG bool = false
 param deployVnet bool = false
 param deployStorage bool = false
 param deployDataFactory bool = false
-param deployManagedIdentity bool = false
+param deployManagedIdentity bool = true 
 param deployAppServicePlans bool = false
 param deployAppInsights bool = false
 param deployAppServices bool = false
@@ -81,7 +81,7 @@ param dfTags object = {
 }
 
 // MANAGED IDENTITY
-param identityName string = 'name of mi'
+param identityName string = 'mi-key-vault'
 param identityTags object = {
   Environment: environmentTag
   'Created By': createdByTag
