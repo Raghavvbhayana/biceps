@@ -34,11 +34,11 @@ jobs:
             --template-file main.bicep \
             --parameters param.bicepparam
 
-      - name: Deploy Resources
-        uses: azure/arm-deploy@v2 # Upgraded to v2 for better Bicep support
-        with:
-          subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          resourceGroupName: ${{ env.RESOURCE_GROUP }}
-          template: ./main.bicep
-          parameters: ./param.bicepparam 
-          failOnStdErr: false
+      # - name: Deploy Resources
+      #   uses: azure/arm-deploy@v2 # Upgraded to v2 for better Bicep support
+      #   with:
+      #     subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      #     resourceGroupName: ${{ env.RESOURCE_GROUP }}
+      #     template: ./main.bicep
+      #     parameters: ./param.bicepparam 
+      #     failOnStdErr: false
