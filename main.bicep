@@ -17,7 +17,7 @@ param location string = 'eastus'
 param resourceGroupName string // Now used in deployment name or tags to clear warning
 param rgTags object
 
-// --- VNET ---
+// --- VNET ----
 param vnetName string
 param vnetAddressPrefix string
 param subnetName string = 'default'
